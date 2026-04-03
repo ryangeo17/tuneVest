@@ -1,5 +1,5 @@
+import 'dotenv/config';
 import express from "express"; 
-import fs from "fs"; 
 import cors from "cors";
 import pool from "./tuneVest-backend/db.js";
 
@@ -67,6 +67,22 @@ app.get("/trades/:id", async (req, res)=>{
 app.get("/holdings/:userId", async (req, res) => {
     const result = await pool.query("SELECT * FROM holdings WHERE user_id = $1", [req.params.userId]);
     res.json(result.rows);
+});
+
+
+app.get("/portfolio/:userId", async  (req, res) => {
+    const result = await pool.query(
+        `SELECT h.shares, a.price 
+         FROM holdings h 
+         JOIN artists a ON h.artist_id = a.id 
+         WHERE h.user_id = $1`,
+        [req.params.userId]
+    );
+    let portfolioValue=0;
+    for (const holding of result.rows){
+        portfolioValue += holding.shares * holding.price;
+    }
+    res.json({ userId: req.params.userId, portfolioValue });
 });
 
 //POSTs
@@ -169,6 +185,7 @@ app.patch("/artists/:id", async (req, res) => {
 
 
 
+
 app.listen(port,'localhost', ()=>{
-    console.log('Server running at http://localhost:${port}/');
+    console.log(`Server running at http://localhost:${port}/`);
 });
