@@ -2,6 +2,7 @@ import 'dotenv/config';
 import express from "express"; 
 import cors from "cors";
 import pool from "./tuneVest-backend/db.js";
+import { updatePrices } from "./priceEngine.js";
 
 const app= express();
 const port =3000;
@@ -83,6 +84,14 @@ app.get("/portfolio/:userId", async  (req, res) => {
         portfolioValue += holding.shares * holding.price;
     }
     res.json({ userId: req.params.userId, portfolioValue });
+});
+
+app.get("/artists/:id/history", async (req, res) => {
+    const result = await pool.query(
+        "SELECT price, monthly_listeners, recorded_at FROM price_history WHERE artist_id = $1 ORDER BY recorded_at",
+        [req.params.id]
+    );
+    res.json(result.rows);
 });
 
 //POSTs
@@ -188,4 +197,6 @@ app.patch("/artists/:id", async (req, res) => {
 
 app.listen(port,'localhost', ()=>{
     console.log(`Server running at http://localhost:${port}/`);
+    updatePrices();
+    setInterval(updatePrices, 24 * 60 * 60 * 1000);
 });
